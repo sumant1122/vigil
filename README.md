@@ -2,6 +2,8 @@
 
 **The Universal Supply Chain Health Dashboard.**
 
+![Vigil TUI Screenshot](./vigilscreenshot.png)
+
 > "Is your dependency tree a house of cards? Find out before it collapses."
 
 **Vigil** is a high-fidelity terminal UI (TUI) that gives you an instant, holistic view of your project's supply chain risk. It doesn't just find vulnerabilities; it measures the **vitality** of your dependencies.
