@@ -1,7 +1,7 @@
 use ratatui::{
     backend::CrosstermBackend,
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Table, Row, Cell},
-    layout::{Layout, Constraint, Direction, Rect},
+    widgets::{Block, Borders, Paragraph, Table, Row, Cell, TableState},
+    layout::{Layout, Constraint, Direction},
     style::{Style, Modifier, Color},
     Terminal,
 };
@@ -15,7 +15,7 @@ use crate::models::{Dependency, HealthScore};
 
 pub struct App {
     pub items: Vec<(Dependency, HealthScore)>,
-    pub state: ListState,
+    pub state: TableState,
 }
 
 pub fn run_tui(items: Vec<(Dependency, HealthScore)>) -> anyhow::Result<()> {
@@ -25,7 +25,7 @@ pub fn run_tui(items: Vec<(Dependency, HealthScore)>) -> anyhow::Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut state = ListState::default();
+    let mut state = TableState::default();
     state.select(Some(0));
     let mut app = App { items, state };
 
