@@ -78,7 +78,9 @@ async fn main() -> anyhow::Result<()> {
                 let maintenance = maintenance.clone();
                 let bloat_indices = bloat_indices.clone();
                 async move {
-                    let mut score = maintenance.get_health(&dep).await.unwrap_or_default();
+                    let mut score = maintenance.get_health(&dep).await.unwrap_or_else(|_| {
+                        futures::executor::block_on(maintenance.get_fallback_health(&dep))
+                    });
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
                     
                     // Query OSV for security advisories

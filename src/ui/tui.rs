@@ -137,17 +137,24 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
             let details_chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Length(8), // Health Summary
+                    Constraint::Length(10), // Health Summary
                     Constraint::Min(0),     // Advisories
                 ].as_ref())
                 .split(body_chunks[1]);
 
             // Health Summary Panel
             let license = dep.license.as_deref().unwrap_or("Unknown");
+            let security_status = if dep.advisories.is_empty() {
+                "🛡️ Secure".to_string()
+            } else {
+                format!("⚠️ Vulnerable ({} advisories)", dep.advisories.len())
+            };
+
             let mut health_text = vec![
-                format!("Ecosystem: {:?}", dep.ecosystem),
-                format!("License:   {}", license),
-                format!("Bloat Index: {} (transitive)", score.bloat_index),
+                format!("Ecosystem:   {:?}", dep.ecosystem),
+                format!("License:     {}", license),
+                format!("Security:    {}", security_status),
+                format!("Dependencies: {} direct / {} transitive", dep.direct_dependencies.len(), score.bloat_index),
                 format!("Vitality Score: {}/100", score.composite_score),
                 "".to_string(),
                 "Maintenance Signals:".to_string(),
