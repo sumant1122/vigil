@@ -14,6 +14,8 @@ pub struct Dependency {
     pub version: String,
     pub ecosystem: Ecosystem,
     pub advisories: Vec<Advisory>,
+    pub direct_dependencies: Vec<String>,
+    pub license: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -22,6 +24,7 @@ pub struct HealthScore {
     pub security_score: u8,    // 0-100
     pub composite_score: u8,   // 0-100
     pub maintenance_details: Vec<String>,
+    pub bloat_index: usize,    // Transitive dependency count
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

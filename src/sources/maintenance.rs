@@ -27,6 +27,7 @@ impl MaintenanceClient {
                 format!("Maintainers: {} active", maintainers),
                 format!("Stars: {}", stars),
             ],
+            bloat_index: 0,
         })
     }
 }

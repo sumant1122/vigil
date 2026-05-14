@@ -13,6 +13,7 @@ struct NpmLockV2 {
 #[derive(Deserialize)]
 struct NpmPackage {
     version: Option<String>,
+    dependencies: Option<HashMap<String, String>>,
 }
 
 pub struct NpmLockScanner;
@@ -40,11 +41,15 @@ impl EcosystemScanner for NpmLockScanner {
             let clean_name = name.strip_prefix("node_modules/").unwrap_or(&name);
             
             if let Some(version) = package.version {
+                let direct_deps = package.dependencies.unwrap_or_default().keys().cloned().collect();
+                
                 deps.push(Dependency {
                     name: clean_name.to_string(),
                     version,
                     ecosystem: Ecosystem::Npm,
                     advisories: Vec::new(),
+                    direct_dependencies: direct_deps,
+                    license: Some("Apache-2.0".to_string()), // Placeholder
                 });
             }
         }

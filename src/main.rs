@@ -51,13 +51,35 @@ async fn main() -> anyhow::Result<()> {
         let maintenance = sources::maintenance::MaintenanceClient::new();
         let osv = std::sync::Arc::new(sources::osv::OsvClient::new());
 
+        // Pre-calculate Bloat Index (Transitive counts)
+        let dep_map: std::collections::HashMap<String, Vec<String>> = all_deps.iter()
+            .map(|d| (d.name.clone(), d.direct_dependencies.clone()))
+            .collect();
+        
+        let mut bloat_indices = std::collections::HashMap::new();
+        for dep in &all_deps {
+            let mut transitive_set = std::collections::HashSet::new();
+            let mut stack = dep.direct_dependencies.clone();
+            while let Some(child_name) = stack.pop() {
+                if transitive_set.insert(child_name.clone()) {
+                    if let Some(children) = dep_map.get(&child_name) {
+                        stack.extend(children.clone());
+                    }
+                }
+            }
+            bloat_indices.insert(dep.name.clone(), transitive_set.len());
+        }
+
         use futures::StreamExt;
+        let bloat_indices = std::sync::Arc::new(bloat_indices);
         let mut stream = futures::stream::iter(all_deps)
             .map(|mut dep| {
                 let osv = osv.clone();
                 let maintenance = &maintenance;
+                let bloat_indices = bloat_indices.clone();
                 async move {
                     let mut score = maintenance.get_health(&dep).await.unwrap_or_default();
+                    score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
                     
                     // Query OSV for security advisories
                     if let Ok(advisories) = osv.query(&dep).await {
