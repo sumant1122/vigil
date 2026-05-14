@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
-use crate::models::{Dependency, Ecosystem, Advisory};
+use crate::models::{Advisory, Dependency, Ecosystem};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 struct OsvQuery {
@@ -22,6 +22,7 @@ struct OsvResponse {
 struct OsvVulnerability {
     id: String,
     summary: Option<String>,
+    #[allow(dead_code)]
     details: Option<String>,
     database_specific: Option<OsvDatabaseSpecific>,
 }
@@ -72,9 +73,11 @@ impl OsvClient {
         }
 
         let batch_query = OsvBatchQuery { queries };
-        
+
         // OSV batch limit is 1000 per request, we are well under that for most projects
-        let res = self.http.post("https://api.osv.dev/v1/querybatch")
+        let res = self
+            .http
+            .post("https://api.osv.dev/v1/querybatch")
             .json(&batch_query)
             .send()
             .await?
@@ -88,8 +91,13 @@ impl OsvClient {
                 for vuln in vulns {
                     advisories.push(Advisory {
                         id: vuln.id,
-                        summary: vuln.summary.unwrap_or_else(|| "No summary provided".to_string()),
-                        severity: vuln.database_specific.and_then(|s| s.severity).unwrap_or_else(|| "Unknown".to_string()),
+                        summary: vuln
+                            .summary
+                            .unwrap_or_else(|| "No summary provided".to_string()),
+                        severity: vuln
+                            .database_specific
+                            .and_then(|s| s.severity)
+                            .unwrap_or_else(|| "Unknown".to_string()),
                     });
                 }
             }
@@ -99,6 +107,7 @@ impl OsvClient {
         Ok(all_advisories)
     }
 
+    #[allow(dead_code)]
     pub async fn query(&self, dep: &Dependency) -> anyhow::Result<Vec<Advisory>> {
         // Keeping individual query for fallback/convenience
         let advisories = self.query_batch(std::slice::from_ref(dep)).await?;

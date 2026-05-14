@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-use directories::ProjectDirs;
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
-use crate::models::{Dependency, HealthScore};
+use crate::models::HealthScore;
 use chrono::{DateTime, Utc};
+use directories::ProjectDirs;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize)]
 pub struct CacheEntry {
@@ -25,7 +25,7 @@ impl CacheManager {
         let cache_dir = ProjectDirs::from("com", "vigil", "vigil")
             .map(|d| d.cache_dir().to_path_buf())
             .unwrap_or_else(|| PathBuf::from(".vigil_cache"));
-        
+
         std::fs::create_dir_all(&cache_dir).ok();
         Self {
             cache_path: cache_dir.join("data.json"),

@@ -16,10 +16,10 @@ struct Args {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    
+
     println!("👁️ Vigil - Universal Supply Chain Health Dashboard");
     println!("Scanning project at {}...", args.path);
-    
+
     let path = std::path::Path::new(&args.path);
     let scanners: Vec<Box<dyn scanners::EcosystemScanner>> = vec![
         Box::new(scanners::cargo::CargoLockScanner),
@@ -47,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
         println!("No supported projects found.");
     } else {
         println!("Analyzing {} dependencies...", all_deps.len());
-        
+
         let maintenance = std::sync::Arc::new(sources::maintenance::MaintenanceClient::new());
         let osv = std::sync::Arc::new(sources::osv::OsvClient::new());
         let cache_mgr = sources::cache::CacheManager::new();
@@ -64,10 +64,11 @@ async fn main() -> anyhow::Result<()> {
 
         // 2. Process Maintenance with Cache
         // Pre-calculate Bloat Index (Transitive counts)
-        let dep_map: std::collections::HashMap<String, Vec<String>> = all_deps.iter()
+        let dep_map: std::collections::HashMap<String, Vec<String>> = all_deps
+            .iter()
             .map(|d| (d.name.clone(), d.direct_dependencies.clone()))
             .collect();
-        
+
         let mut bloat_indices = std::collections::HashMap::new();
         for dep in &all_deps {
             let mut transitive_set = std::collections::HashSet::new();
@@ -84,19 +85,19 @@ async fn main() -> anyhow::Result<()> {
 
         use futures::StreamExt;
         let bloat_indices = std::sync::Arc::new(bloat_indices);
-        
+
         // Split deps into those we have in cache and those we don't
         let mut to_fetch = Vec::new();
         let mut cached_results = Vec::new();
 
-        for mut dep in all_deps {
+        for dep in all_deps {
             let cache_key = format!("{:?}:{}@{}", dep.ecosystem, dep.name, dep.version);
             if let Some(entry) = cache.entries.get(&cache_key) {
                 // If entry is less than 24h old, use it
                 if (chrono::Utc::now() - entry.timestamp).num_hours() < 24 {
                     let mut score = entry.score.clone();
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
-                    
+
                     if !dep.advisories.is_empty() {
                         score.security_score = 0;
                         score.composite_score = (score.maintenance_score as u16 / 2) as u8;
@@ -108,10 +109,14 @@ async fn main() -> anyhow::Result<()> {
             to_fetch.push(dep);
         }
 
-        println!("Fetching fresh data for {} dependencies ({} from cache)...", to_fetch.len(), cached_results.len());
+        println!(
+            "Fetching fresh data for {} dependencies ({} from cache)...",
+            to_fetch.len(),
+            cached_results.len()
+        );
 
         let mut stream = futures::stream::iter(to_fetch)
-            .map(|mut dep| {
+            .map(|dep| {
                 let maintenance = maintenance.clone();
                 let bloat_indices = bloat_indices.clone();
                 async move {
@@ -119,7 +124,7 @@ async fn main() -> anyhow::Result<()> {
                         futures::executor::block_on(maintenance.get_fallback_health(&dep))
                     });
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
-                    
+
                     if !dep.advisories.is_empty() {
                         score.security_score = 0;
                         score.composite_score = (score.maintenance_score as u16 / 2) as u8;
@@ -127,16 +132,19 @@ async fn main() -> anyhow::Result<()> {
                     (dep, score)
                 }
             })
-            .buffer_unordered(10); 
+            .buffer_unordered(10);
 
         let mut enriched_deps = cached_results;
         while let Some((dep, score)) = stream.next().await {
             // Update cache
             let cache_key = format!("{:?}:{}@{}", dep.ecosystem, dep.name, dep.version);
-            cache.entries.insert(cache_key, sources::cache::CacheEntry {
-                score: score.clone(),
-                timestamp: chrono::Utc::now(),
-            });
+            cache.entries.insert(
+                cache_key,
+                sources::cache::CacheEntry {
+                    score: score.clone(),
+                    timestamp: chrono::Utc::now(),
+                },
+            );
             enriched_deps.push((dep, score));
         }
 
@@ -146,13 +154,12 @@ async fn main() -> anyhow::Result<()> {
         // Sort by composite score (lowest first to highlight risks)
         enriched_deps.sort_by_key(|(_, score)| score.composite_score);
 
-
         if enriched_deps.is_empty() {
             println!("No data to display.");
         } else {
             ui::tui::run_tui(enriched_deps)?;
         }
     }
-    
+
     Ok(())
 }
