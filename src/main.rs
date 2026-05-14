@@ -49,22 +49,32 @@ async fn main() -> anyhow::Result<()> {
         println!("Analyzing {} dependencies...", all_deps.len());
         
         let maintenance = sources::maintenance::MaintenanceClient::new();
-        let osv = sources::osv::OsvClient::new();
+        let osv = std::sync::Arc::new(sources::osv::OsvClient::new());
+
+        use futures::StreamExt;
+        let mut stream = futures::stream::iter(all_deps)
+            .map(|mut dep| {
+                let osv = osv.clone();
+                let maintenance = &maintenance;
+                async move {
+                    let mut score = maintenance.get_health(&dep).await.unwrap_or_default();
+                    
+                    // Query OSV for security advisories
+                    if let Ok(advisories) = osv.query(&dep).await {
+                        if !advisories.is_empty() {
+                            score.security_score = 0; // Found vulnerabilities
+                            score.composite_score = (score.maintenance_score as u16 / 2) as u8; // Heavily penalize
+                            dep.advisories = advisories;
+                        }
+                    }
+                    (dep, score)
+                }
+            })
+            .buffer_unordered(10); // Run 10 queries in parallel
 
         let mut enriched_deps = Vec::new();
-        for mut dep in all_deps {
-            let mut score = maintenance.get_health(&dep).await.unwrap_or_default();
-            
-            // Query OSV for security advisories
-            if let Ok(advisories) = osv.query(&dep).await {
-                if !advisories.is_empty() {
-                    score.security_score = 0; // Found vulnerabilities
-                    score.composite_score = (score.maintenance_score as u16 / 2) as u8; // Heavily penalize
-                    dep.advisories = advisories;
-                }
-            }
-            
-            enriched_deps.push((dep, score));
+        while let Some(item) = stream.next().await {
+            enriched_deps.push(item);
         }
 
         ui::tui::run_tui(enriched_deps)?;
