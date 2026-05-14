@@ -1,6 +1,6 @@
 use ratatui::{
     backend::CrosstermBackend,
-    widgets::{Block, Borders, Paragraph, Table, Row, Cell, TableState},
+    widgets::{Block, Borders, Paragraph, Table, Row, Cell, TableState, List, ListItem},
     layout::{Layout, Constraint, Direction},
     style::{Style, Modifier, Color},
     Terminal,
@@ -87,10 +87,21 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
         ].as_ref())
         .split(f.size());
 
+    // Top Header
     let title = Paragraph::new("👁️ Vigil - Universal Supply Chain Health Dashboard")
         .block(Block::default().borders(Borders::ALL).title("Status"));
     f.render_widget(title, chunks[0]);
 
+    // Main Body: Table (Left) and Details (Right)
+    let body_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(60),
+            Constraint::Percentage(40),
+        ].as_ref())
+        .split(chunks[1]);
+
+    // Table view
     let rows: Vec<Row> = app.items.iter().map(|(dep, score)| {
         let color = if score.composite_score > 80 {
             Color::Green
@@ -103,25 +114,70 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
         Row::new(vec![
             Cell::from(dep.name.clone()),
             Cell::from(dep.version.clone()),
-            Cell::from(format!("{:?}", dep.ecosystem)),
             Cell::from(score.composite_score.to_string()).style(Style::default().fg(color)),
         ])
     }).collect();
 
     let table = Table::new(rows, [
-        Constraint::Percentage(40),
-        Constraint::Percentage(20),
-        Constraint::Percentage(20),
-        Constraint::Percentage(20),
+        Constraint::Percentage(60),
+        Constraint::Percentage(25),
+        Constraint::Percentage(15),
     ])
-    .header(Row::new(vec!["Dependency", "Version", "Ecosystem", "Score"])
+    .header(Row::new(vec!["Dependency", "Version", "Score"])
         .style(Style::default().add_modifier(Modifier::BOLD)))
-    .block(Block::default().borders(Borders::ALL).title("Dependencies"))
+    .block(Block::default().borders(Borders::ALL).title("Inventory"))
     .highlight_style(Style::default().add_modifier(Modifier::BOLD).bg(Color::DarkGray))
     .highlight_symbol(">> ");
 
-    f.render_stateful_widget(table, chunks[1], &mut app.state);
+    f.render_stateful_widget(table, body_chunks[0], &mut app.state);
 
+    // Details view (Right)
+    if let Some(selected_idx) = app.state.selected() {
+        if let Some((dep, score)) = app.items.get(selected_idx) {
+            let details_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(6), // Health Summary
+                    Constraint::Min(0),     // Advisories
+                ].as_ref())
+                .split(body_chunks[1]);
+
+            // Health Summary Panel
+            let mut health_text = vec![
+                format!("Ecosystem: {:?}", dep.ecosystem),
+                format!("Vitality Score: {}/100", score.composite_score),
+                "".to_string(),
+                "Maintenance Signals:".to_string(),
+            ];
+            for signal in &score.maintenance_details {
+                health_text.push(format!(" • {}", signal));
+            }
+
+            let health_panel = Paragraph::new(health_text.join("\n"))
+                .block(Block::default().borders(Borders::ALL).title("Health Vitality"));
+            f.render_widget(health_panel, details_chunks[0]);
+
+            // Advisories Panel
+            let advisory_items: Vec<ListItem> = if dep.advisories.is_empty() {
+                vec![ListItem::new("✅ No known vulnerabilities found.")]
+            } else {
+                dep.advisories.iter().map(|adv| {
+                    ListItem::new(vec![
+                        ratatui::text::Line::from(format!("ID: {}", adv.id)).style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+                        ratatui::text::Line::from(format!("Severity: {}", adv.severity)),
+                        ratatui::text::Line::from(adv.summary.clone()),
+                        ratatui::text::Line::from("─".repeat(20)),
+                    ])
+                }).collect()
+            };
+
+            let advisories_list = List::new(advisory_items)
+                .block(Block::default().borders(Borders::ALL).title("Security Advisories"));
+            f.render_widget(advisories_list, details_chunks[1]);
+        }
+    }
+
+    // Footer
     let footer = Paragraph::new("Use ↑/↓ to navigate, 'q' to quit")
         .block(Block::default().borders(Borders::ALL));
     f.render_widget(footer, chunks[2]);

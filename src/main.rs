@@ -52,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
         let osv = sources::osv::OsvClient::new();
 
         let mut enriched_deps = Vec::new();
-        for dep in all_deps {
+        for mut dep in all_deps {
             let mut score = maintenance.get_health(&dep).await.unwrap_or_default();
             
             // Query OSV for security advisories
@@ -60,6 +60,7 @@ async fn main() -> anyhow::Result<()> {
                 if !advisories.is_empty() {
                     score.security_score = 0; // Found vulnerabilities
                     score.composite_score = (score.maintenance_score as u16 / 2) as u8; // Heavily penalize
+                    dep.advisories = advisories;
                 }
             }
             

@@ -43,6 +43,7 @@ impl EcosystemScanner for GoModScanner {
                         name: parts[1].to_string(),
                         version: parts[2].to_string(),
                         ecosystem: Ecosystem::Go,
+                        advisories: Vec::new(),
                     });
                 }
             } else if in_require {
@@ -52,6 +53,7 @@ impl EcosystemScanner for GoModScanner {
                         name: parts[0].to_string(),
                         version: parts[1].to_string(),
                         ecosystem: Ecosystem::Go,
+                        advisories: Vec::new(),
                     });
                 }
             }

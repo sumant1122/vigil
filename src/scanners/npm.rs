@@ -44,6 +44,7 @@ impl EcosystemScanner for NpmLockScanner {
                     name: clean_name.to_string(),
                     version,
                     ecosystem: Ecosystem::Npm,
+                    advisories: Vec::new(),
                 });
             }
         }

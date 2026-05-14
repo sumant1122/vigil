@@ -14,6 +14,11 @@ impl MaintenanceClient {
             maintenance_score: 85,
             security_score: 100,
             composite_score: 92,
+            maintenance_details: vec![
+                "Last commit: 12 days ago".to_string(),
+                "Maintainers: 5 active".to_string(),
+                "Stars: 1.2k".to_string(),
+            ],
         })
     }
 }

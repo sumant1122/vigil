@@ -36,6 +36,7 @@ impl EcosystemScanner for CargoLockScanner {
             name: p.name,
             version: p.version,
             ecosystem: Ecosystem::Cargo,
+            advisories: Vec::new(),
         }).collect())
     }
 }

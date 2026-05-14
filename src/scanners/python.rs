@@ -38,6 +38,7 @@ impl EcosystemScanner for RequirementsTxtScanner {
                     name: name.trim().to_string(),
                     version: parts.get(1).unwrap_or(&"unknown").trim().to_string(),
                     ecosystem: Ecosystem::Pip,
+                    advisories: Vec::new(),
                 });
             }
         }
