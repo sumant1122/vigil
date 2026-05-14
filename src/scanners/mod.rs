@@ -1,11 +1,11 @@
-use std::path::Path;
-use async_trait::async_trait;
 use crate::models::Dependency;
+use async_trait::async_trait;
+use std::path::Path;
 
 pub mod cargo;
+pub mod go;
 pub mod npm;
 pub mod python;
-pub mod go;
 
 #[async_trait]
 pub trait EcosystemScanner {

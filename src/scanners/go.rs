@@ -1,7 +1,7 @@
-use std::path::Path;
-use async_trait::async_trait;
-use crate::models::{Dependency, Ecosystem};
 use super::EcosystemScanner;
+use crate::models::{Dependency, Ecosystem};
+use async_trait::async_trait;
+use std::path::Path;
 
 pub struct GoModScanner;
 
@@ -18,13 +18,15 @@ impl EcosystemScanner for GoModScanner {
     async fn scan(&self, path: &Path) -> anyhow::Result<Vec<Dependency>> {
         let mod_path = path.join("go.mod");
         let content = tokio::fs::read_to_string(mod_path).await?;
-        
+
         let mut deps = Vec::new();
         let mut in_require = false;
 
         for line in content.lines() {
             let line = line.trim();
-            if line.is_empty() || line.starts_with("//") { continue; }
+            if line.is_empty() || line.starts_with("//") {
+                continue;
+            }
 
             if line.starts_with("require (") {
                 in_require = true;
@@ -78,8 +80,10 @@ mod tests {
         let dir = tempdir()?;
         let mod_path = dir.path().join("go.mod");
         let mut file = std::fs::File::create(mod_path)?;
-        
-        writeln!(file, r#"module test-app
+
+        writeln!(
+            file,
+            r#"module test-app
 
 go 1.21
 
@@ -89,20 +93,27 @@ require (
 )
 
 require github.com/google/uuid v1.4.0
-"#)?;
+"#
+        )?;
 
         let scanner = GoModScanner;
         assert!(scanner.can_scan(dir.path()));
-        
+
         let deps = scanner.scan(dir.path()).await?;
         assert_eq!(deps.len(), 3);
-        
-        let gin = deps.iter().find(|d| d.name == "github.com/gin-gonic/gin").unwrap();
+
+        let gin = deps
+            .iter()
+            .find(|d| d.name == "github.com/gin-gonic/gin")
+            .unwrap();
         assert_eq!(gin.version, "v1.9.1");
-        
-        let uuid = deps.iter().find(|d| d.name == "github.com/google/uuid").unwrap();
+
+        let uuid = deps
+            .iter()
+            .find(|d| d.name == "github.com/google/uuid")
+            .unwrap();
         assert_eq!(uuid.version, "v1.4.0");
-        
+
         Ok(())
     }
 }

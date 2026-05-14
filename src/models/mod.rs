@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Ecosystem {
@@ -24,7 +24,7 @@ pub struct HealthScore {
     pub security_score: u8,    // 0-100
     pub composite_score: u8,   // 0-100
     pub maintenance_details: Vec<String>,
-    pub bloat_index: usize,    // Transitive dependency count
+    pub bloat_index: usize, // Transitive dependency count
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

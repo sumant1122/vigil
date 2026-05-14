@@ -1,17 +1,17 @@
-use ratatui::{
-    backend::CrosstermBackend,
-    widgets::{Block, Borders, Paragraph, Table, Row, Cell, TableState, List, ListItem},
-    layout::{Layout, Constraint, Direction},
-    style::{Style, Modifier, Color},
-    Terminal,
-};
+use crate::models::{Dependency, HealthScore};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use ratatui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
+    widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table, TableState},
+    Terminal,
+};
 use std::io;
-use crate::models::{Dependency, HealthScore};
 
 pub struct App {
     pub items: Vec<(Dependency, HealthScore)>,
@@ -46,7 +46,10 @@ pub fn run_tui(items: Vec<(Dependency, HealthScore)>) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<()> {
+fn run_app<B: ratatui::backend::Backend>(
+    terminal: &mut Terminal<B>,
+    app: &mut App,
+) -> io::Result<()> {
     loop {
         terminal.draw(|f| ui(f, app))?;
 
@@ -56,7 +59,11 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                 KeyCode::Down => {
                     let i = match app.state.selected() {
                         Some(i) => {
-                            if i >= app.items.len() - 1 { 0 } else { i + 1 }
+                            if i >= app.items.len() - 1 {
+                                0
+                            } else {
+                                i + 1
+                            }
                         }
                         None => 0,
                     };
@@ -65,7 +72,11 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
                 KeyCode::Up => {
                     let i = match app.state.selected() {
                         Some(i) => {
-                            if i == 0 { app.items.len() - 1 } else { i - 1 }
+                            if i == 0 {
+                                app.items.len() - 1
+                            } else {
+                                i - 1
+                            }
                         }
                         None => 0,
                     };
@@ -80,11 +91,14 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, app: &mut A
 fn ui(f: &mut ratatui::Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Min(0),
-            Constraint::Length(3),
-        ].as_ref())
+        .constraints(
+            [
+                Constraint::Length(3),
+                Constraint::Min(0),
+                Constraint::Length(3),
+            ]
+            .as_ref(),
+        )
         .split(f.size());
 
     // Top Header
@@ -95,38 +109,48 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
     // Main Body: Table (Left) and Details (Right)
     let body_chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(60),
-            Constraint::Percentage(40),
-        ].as_ref())
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)].as_ref())
         .split(chunks[1]);
 
     // Table view
-    let rows: Vec<Row> = app.items.iter().map(|(dep, score)| {
-        let color = if score.composite_score > 80 {
-            Color::Green
-        } else if score.composite_score > 50 {
-            Color::Yellow
-        } else {
-            Color::Red
-        };
+    let rows: Vec<Row> = app
+        .items
+        .iter()
+        .map(|(dep, score)| {
+            let color = if score.composite_score > 80 {
+                Color::Green
+            } else if score.composite_score > 50 {
+                Color::Yellow
+            } else {
+                Color::Red
+            };
 
-        Row::new(vec![
-            Cell::from(dep.name.clone()),
-            Cell::from(dep.version.clone()),
-            Cell::from(score.composite_score.to_string()).style(Style::default().fg(color)),
-        ])
-    }).collect();
+            Row::new(vec![
+                Cell::from(dep.name.clone()),
+                Cell::from(dep.version.clone()),
+                Cell::from(score.composite_score.to_string()).style(Style::default().fg(color)),
+            ])
+        })
+        .collect();
 
-    let table = Table::new(rows, [
-        Constraint::Percentage(60),
-        Constraint::Percentage(25),
-        Constraint::Percentage(15),
-    ])
-    .header(Row::new(vec!["Dependency", "Version", "Score"])
-        .style(Style::default().add_modifier(Modifier::BOLD)))
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Percentage(60),
+            Constraint::Percentage(25),
+            Constraint::Percentage(15),
+        ],
+    )
+    .header(
+        Row::new(vec!["Dependency", "Version", "Score"])
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+    )
     .block(Block::default().borders(Borders::ALL).title("Inventory"))
-    .highlight_style(Style::default().add_modifier(Modifier::BOLD).bg(Color::DarkGray))
+    .highlight_style(
+        Style::default()
+            .add_modifier(Modifier::BOLD)
+            .bg(Color::DarkGray),
+    )
     .highlight_symbol(">> ");
 
     f.render_stateful_widget(table, body_chunks[0], &mut app.state);
@@ -136,10 +160,13 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
         if let Some((dep, score)) = app.items.get(selected_idx) {
             let details_chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(10), // Health Summary
-                    Constraint::Min(0),     // Advisories
-                ].as_ref())
+                .constraints(
+                    [
+                        Constraint::Length(10), // Health Summary
+                        Constraint::Min(0),     // Advisories
+                    ]
+                    .as_ref(),
+                )
                 .split(body_chunks[1]);
 
             // Health Summary Panel
@@ -154,7 +181,11 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
                 format!("Ecosystem:   {:?}", dep.ecosystem),
                 format!("License:     {}", license),
                 format!("Security:    {}", security_status),
-                format!("Dependencies: {} direct / {} transitive", dep.direct_dependencies.len(), score.bloat_index),
+                format!(
+                    "Dependencies: {} direct / {} transitive",
+                    dep.direct_dependencies.len(),
+                    score.bloat_index
+                ),
                 format!("Vitality Score: {}/100", score.composite_score),
                 "".to_string(),
                 "Maintenance Signals:".to_string(),
@@ -163,26 +194,37 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
                 health_text.push(format!(" • {}", signal));
             }
 
-            let health_panel = Paragraph::new(health_text.join("\n"))
-                .block(Block::default().borders(Borders::ALL).title("Health Vitality"));
+            let health_panel = Paragraph::new(health_text.join("\n")).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Health Vitality"),
+            );
             f.render_widget(health_panel, details_chunks[0]);
 
             // Advisories Panel
             let advisory_items: Vec<ListItem> = if dep.advisories.is_empty() {
                 vec![ListItem::new("✅ No known vulnerabilities found.")]
             } else {
-                dep.advisories.iter().map(|adv| {
-                    ListItem::new(vec![
-                        ratatui::text::Line::from(format!("ID: {}", adv.id)).style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
-                        ratatui::text::Line::from(format!("Severity: {}", adv.severity)),
-                        ratatui::text::Line::from(adv.summary.clone()),
-                        ratatui::text::Line::from("─".repeat(20)),
-                    ])
-                }).collect()
+                dep.advisories
+                    .iter()
+                    .map(|adv| {
+                        ListItem::new(vec![
+                            ratatui::text::Line::from(format!("ID: {}", adv.id)).style(
+                                Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                            ),
+                            ratatui::text::Line::from(format!("Severity: {}", adv.severity)),
+                            ratatui::text::Line::from(adv.summary.clone()),
+                            ratatui::text::Line::from("─".repeat(20)),
+                        ])
+                    })
+                    .collect()
             };
 
-            let advisories_list = List::new(advisory_items)
-                .block(Block::default().borders(Borders::ALL).title("Security Advisories"));
+            let advisories_list = List::new(advisory_items).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Security Advisories"),
+            );
             f.render_widget(advisories_list, details_chunks[1]);
         }
     }
