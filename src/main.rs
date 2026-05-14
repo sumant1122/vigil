@@ -44,7 +44,18 @@ async fn main() -> anyhow::Result<()> {
     if all_deps.is_empty() {
         println!("No supported projects found.");
     } else {
-        println!("Total unique dependencies: {}", all_deps.len());
+        println!("Analyzing {} dependencies...", all_deps.len());
+        
+        let maintenance = sources::maintenance::MaintenanceClient::new();
+        // let _osv = sources::osv::OsvClient::new(); // Ready for use
+
+        let mut enriched_deps = Vec::new();
+        for dep in all_deps {
+            let score = maintenance.get_health(&dep).await.unwrap_or_default();
+            enriched_deps.push((dep, score));
+        }
+
+        ui::tui::run_tui(enriched_deps)?;
     }
     
     Ok(())
