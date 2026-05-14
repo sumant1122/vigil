@@ -52,14 +52,14 @@ impl MaintenanceClient {
         let url = format!("https://crates.io/api/v1/crates/{}", dep.name);
         let res = self.http.get(&url).send().await?.json::<CratesIoResponse>().await?;
 
+        let updated_at = &res.krate.updated_at[..10];
+        let maintenance_score = self.calculate_staleness_score(updated_at);
+
         let maintenance_details = vec![
-            format!("Last updated: {}", &res.krate.updated_at[..10]),
+            format!("Last updated: {}", updated_at),
             format!("Total downloads: {}", res.krate.downloads),
             "Source: crates.io".to_string(),
         ];
-
-        // Basic scoring logic based on age (simplified)
-        let maintenance_score = 90; 
 
         Ok(HealthScore {
             maintenance_score,
@@ -74,18 +74,42 @@ impl MaintenanceClient {
         let url = format!("https://registry.npmjs.org/{}", dep.name);
         let res = self.http.get(&url).send().await?.json::<NpmResponse>().await?;
 
-        let last_updated = res.time.get("modified").map(|s| &s[..10]).unwrap_or("Unknown");
+        let last_updated = res.time.get("modified").map(|s| &s[..10]).unwrap_or("2000-01-01");
+        let maintenance_score = self.calculate_staleness_score(last_updated);
         
         Ok(HealthScore {
-            maintenance_score: 85,
+            maintenance_score,
             security_score: 100,
-            composite_score: 85,
+            composite_score: maintenance_score,
             maintenance_details: vec![
                 format!("Last updated: {}", last_updated),
                 "Source: npmjs.org".to_string(),
             ],
             bloat_index: 0,
         })
+    }
+
+    fn calculate_staleness_score(&self, date_str: &str) -> u8 {
+        // Simple staleness calculation:
+        // 100 points base.
+        // -10 points for every 6 months of inactivity.
+        
+        let year = date_str[..4].parse::<i32>().unwrap_or(2024);
+        let month = date_str[5..7].parse::<i32>().unwrap_or(1);
+        
+        let current_year = 2024;
+        let current_month = 5;
+        
+        let months_ago = (current_year - year) * 12 + (current_month - month);
+        
+        if months_ago < 0 { return 100; }
+        
+        let penalty = (months_ago / 6) * 10;
+        if penalty >= 100 {
+            10
+        } else {
+            100 - penalty as u8
+        }
     }
 
     async fn get_simulated_health(&self, dep: &Dependency) -> anyhow::Result<HealthScore> {
