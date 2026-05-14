@@ -50,7 +50,19 @@ async fn main() -> anyhow::Result<()> {
         
         let maintenance = std::sync::Arc::new(sources::maintenance::MaintenanceClient::new());
         let osv = std::sync::Arc::new(sources::osv::OsvClient::new());
+        let cache_mgr = sources::cache::CacheManager::new();
+        let mut cache = cache_mgr.load();
 
+        // 1. Batch OSV Queries
+        println!("Checking OSV database...");
+        let all_advisories = osv.query_batch(&all_deps).await.unwrap_or_default();
+        for (i, advs) in all_advisories.into_iter().enumerate() {
+            if i < all_deps.len() {
+                all_deps[i].advisories = advs;
+            }
+        }
+
+        // 2. Process Maintenance with Cache
         // Pre-calculate Bloat Index (Transitive counts)
         let dep_map: std::collections::HashMap<String, Vec<String>> = all_deps.iter()
             .map(|d| (d.name.clone(), d.direct_dependencies.clone()))
@@ -72,9 +84,34 @@ async fn main() -> anyhow::Result<()> {
 
         use futures::StreamExt;
         let bloat_indices = std::sync::Arc::new(bloat_indices);
-        let mut stream = futures::stream::iter(all_deps)
+        
+        // Split deps into those we have in cache and those we don't
+        let mut to_fetch = Vec::new();
+        let mut cached_results = Vec::new();
+
+        for mut dep in all_deps {
+            let cache_key = format!("{:?}:{}@{}", dep.ecosystem, dep.name, dep.version);
+            if let Some(entry) = cache.entries.get(&cache_key) {
+                // If entry is less than 24h old, use it
+                if (chrono::Utc::now() - entry.timestamp).num_hours() < 24 {
+                    let mut score = entry.score.clone();
+                    score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
+                    
+                    if !dep.advisories.is_empty() {
+                        score.security_score = 0;
+                        score.composite_score = (score.maintenance_score as u16 / 2) as u8;
+                    }
+                    cached_results.push((dep, score));
+                    continue;
+                }
+            }
+            to_fetch.push(dep);
+        }
+
+        println!("Fetching fresh data for {} dependencies ({} from cache)...", to_fetch.len(), cached_results.len());
+
+        let mut stream = futures::stream::iter(to_fetch)
             .map(|mut dep| {
-                let osv = osv.clone();
                 let maintenance = maintenance.clone();
                 let bloat_indices = bloat_indices.clone();
                 async move {
@@ -83,26 +120,32 @@ async fn main() -> anyhow::Result<()> {
                     });
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
                     
-                    // Query OSV for security advisories
-                    if let Ok(advisories) = osv.query(&dep).await {
-                        if !advisories.is_empty() {
-                            score.security_score = 0; // Found vulnerabilities
-                            score.composite_score = (score.maintenance_score as u16 / 2) as u8; // Heavily penalize
-                            dep.advisories = advisories;
-                        }
+                    if !dep.advisories.is_empty() {
+                        score.security_score = 0;
+                        score.composite_score = (score.maintenance_score as u16 / 2) as u8;
                     }
                     (dep, score)
                 }
             })
-            .buffer_unordered(20); // Increase parallelism to 20
+            .buffer_unordered(10); 
 
-        let mut enriched_deps = Vec::new();
-        while let Some(item) = stream.next().await {
-            enriched_deps.push(item);
+        let mut enriched_deps = cached_results;
+        while let Some((dep, score)) = stream.next().await {
+            // Update cache
+            let cache_key = format!("{:?}:{}@{}", dep.ecosystem, dep.name, dep.version);
+            cache.entries.insert(cache_key, sources::cache::CacheEntry {
+                score: score.clone(),
+                timestamp: chrono::Utc::now(),
+            });
+            enriched_deps.push((dep, score));
         }
+
+        // Save cache for next time
+        let _ = cache_mgr.save(&cache);
 
         // Sort by composite score (lowest first to highlight risks)
         enriched_deps.sort_by_key(|(_, score)| score.composite_score);
+
 
         if enriched_deps.is_empty() {
             println!("No data to display.");

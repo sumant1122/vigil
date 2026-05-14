@@ -18,7 +18,7 @@ pub struct Dependency {
     pub license: Option<String>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HealthScore {
     pub maintenance_score: u8, // 0-100
     pub security_score: u8,    // 0-100
