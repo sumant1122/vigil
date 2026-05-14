@@ -4,6 +4,8 @@ use crate::models::Dependency;
 
 pub mod cargo;
 pub mod npm;
+pub mod python;
+pub mod go;
 
 #[async_trait]
 pub trait EcosystemScanner {

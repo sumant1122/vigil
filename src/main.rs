@@ -24,6 +24,8 @@ async fn main() -> anyhow::Result<()> {
     let scanners: Vec<Box<dyn scanners::EcosystemScanner>> = vec![
         Box::new(scanners::cargo::CargoLockScanner),
         Box::new(scanners::npm::NpmLockScanner),
+        Box::new(scanners::python::RequirementsTxtScanner),
+        Box::new(scanners::go::GoModScanner),
     ];
 
     let mut all_deps = Vec::new();
