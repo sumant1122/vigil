@@ -132,3 +132,25 @@ impl MaintenanceClient {
         Ok(self.get_fallback_health(dep).await)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_staleness_scoring() {
+        let client = MaintenanceClient::new();
+        
+        // Brand new (May 2024 - simulated current date)
+        assert_eq!(client.calculate_staleness_score("2024-05-01"), 100);
+        
+        // 6 months old
+        assert_eq!(client.calculate_staleness_score("2023-11-01"), 90);
+        
+        // 1 year old
+        assert_eq!(client.calculate_staleness_score("2023-05-01"), 80);
+        
+        // 5 years old
+        assert_eq!(client.calculate_staleness_score("2019-05-01"), 10);
+    }
+}

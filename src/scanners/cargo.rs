@@ -50,3 +50,43 @@ impl EcosystemScanner for CargoLockScanner {
         }).collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn test_cargo_scanner() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let lock_path = dir.path().join("Cargo.lock");
+        let mut file = std::fs::File::create(lock_path)?;
+        
+        writeln!(file, r#"
+[[package]]
+name = "test-crate"
+version = "1.0.0"
+dependencies = [
+ "dep-a",
+ "dep-b 0.1.0",
+]
+
+[[package]]
+name = "dep-a"
+version = "0.5.0"
+"#)?;
+
+        let scanner = CargoLockScanner;
+        assert!(scanner.can_scan(dir.path()));
+        
+        let deps = scanner.scan(dir.path()).await?;
+        assert_eq!(deps.len(), 2);
+        
+        let test_crate = deps.iter().find(|d| d.name == "test-crate").unwrap();
+        assert_eq!(test_crate.version, "1.0.0");
+        assert_eq!(test_crate.direct_dependencies, vec!["dep-a", "dep-b"]);
+        
+        Ok(())
+    }
+}

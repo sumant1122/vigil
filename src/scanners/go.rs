@@ -66,3 +66,43 @@ impl EcosystemScanner for GoModScanner {
         Ok(deps)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn test_go_scanner() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let mod_path = dir.path().join("go.mod");
+        let mut file = std::fs::File::create(mod_path)?;
+        
+        writeln!(file, r#"module test-app
+
+go 1.21
+
+require (
+	github.com/gin-gonic/gin v1.9.1
+	github.com/stretchr/testify v1.8.4
+)
+
+require github.com/google/uuid v1.4.0
+"#)?;
+
+        let scanner = GoModScanner;
+        assert!(scanner.can_scan(dir.path()));
+        
+        let deps = scanner.scan(dir.path()).await?;
+        assert_eq!(deps.len(), 3);
+        
+        let gin = deps.iter().find(|d| d.name == "github.com/gin-gonic/gin").unwrap();
+        assert_eq!(gin.version, "v1.9.1");
+        
+        let uuid = deps.iter().find(|d| d.name == "github.com/google/uuid").unwrap();
+        assert_eq!(uuid.version, "v1.4.0");
+        
+        Ok(())
+    }
+}

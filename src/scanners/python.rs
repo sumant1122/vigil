@@ -48,3 +48,36 @@ impl EcosystemScanner for RequirementsTxtScanner {
         Ok(deps)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn test_python_scanner() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let req_path = dir.path().join("requirements.txt");
+        let mut file = std::fs::File::create(req_path)?;
+        
+        writeln!(file, "requests==2.31.0\n# comment\nflask>=3.0.0\nnumpy")?;
+
+        let scanner = RequirementsTxtScanner;
+        assert!(scanner.can_scan(dir.path()));
+        
+        let deps = scanner.scan(dir.path()).await?;
+        assert_eq!(deps.len(), 3);
+        
+        let requests = deps.iter().find(|d| d.name == "requests").unwrap();
+        assert_eq!(requests.version, "2.31.0");
+        
+        let flask = deps.iter().find(|d| d.name == "flask").unwrap();
+        assert_eq!(flask.version, "3.0.0");
+
+        let numpy = deps.iter().find(|d| d.name == "numpy").unwrap();
+        assert_eq!(numpy.version, "unknown");
+        
+        Ok(())
+    }
+}
