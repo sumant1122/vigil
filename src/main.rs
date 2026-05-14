@@ -92,14 +92,21 @@ async fn main() -> anyhow::Result<()> {
                     (dep, score)
                 }
             })
-            .buffer_unordered(10); // Run 10 queries in parallel
+            .buffer_unordered(20); // Increase parallelism to 20
 
         let mut enriched_deps = Vec::new();
         while let Some(item) = stream.next().await {
             enriched_deps.push(item);
         }
 
-        ui::tui::run_tui(enriched_deps)?;
+        // Sort by composite score (lowest first to highlight risks)
+        enriched_deps.sort_by_key(|(_, score)| score.composite_score);
+
+        if enriched_deps.is_empty() {
+            println!("No data to display.");
+        } else {
+            ui::tui::run_tui(enriched_deps)?;
+        }
     }
     
     Ok(())

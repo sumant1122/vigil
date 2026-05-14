@@ -52,9 +52,10 @@ impl MaintenanceClient {
         let url = format!("https://crates.io/api/v1/crates/{}", dep.name);
         let res = self.http.get(&url).send().await?.json::<CratesIoResponse>().await?;
 
-        let mut maintenance_details = vec![
+        let maintenance_details = vec![
             format!("Last updated: {}", &res.krate.updated_at[..10]),
             format!("Total downloads: {}", res.krate.downloads),
+            "Source: crates.io".to_string(),
         ];
 
         // Basic scoring logic based on age (simplified)
