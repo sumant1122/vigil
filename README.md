@@ -21,12 +21,63 @@
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Installation
+
+### From Source
+Ensure you have Rust and Cargo installed, then run:
 
 ```bash
-cargo install vigil
+git clone https://github.com/sumant1122/vigil.git
+cd vigil
+cargo install --path .
+```
+
+---
+
+## ⚡ Usage
+
+Vigil is designed to be **Zero-Config**. Just navigate to your project's root and run:
+
+```bash
 vigil
 ```
+
+### Advanced Usage
+
+Analyze a specific project directory:
+```bash
+vigil --path /path/to/your/project
+```
+
+Check the version:
+```bash
+vigil --version
+```
+
+---
+
+## 💡 How to Read the Dashboard
+
+When you run Vigil, it scans your lockfiles and presents a table with the following columns:
+
+- **Dependency**: The name of the package/crate.
+- **Version**: The specific version currently locked in your project.
+- **Ecosystem**: Which language ecosystem it belongs to (Cargo, NPM, Pip, Go).
+- **Score**: A composite health score (0-100).
+    - **Green (80-100)**: Healthy, active, and secure.
+    - **Yellow (50-79)**: Minor concerns (e.g., slightly stale or low bus factor).
+    - **Red (0-49)**: **Critical Risk**. Usually indicates a known security vulnerability (CVE) or an abandoned project.
+
+---
+
+## 🛠️ Supported Ecosystems
+
+| Ecosystem | Detected File |
+| :--- | :--- |
+| **Rust** | `Cargo.lock` |
+| **Node.js** | `package-lock.json` (v2+) |
+| **Python** | `requirements.txt` |
+| **Go** | `go.mod` |
 
 ---
 
