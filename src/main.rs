@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
     } else {
         println!("Analyzing {} dependencies...", all_deps.len());
         
-        let maintenance = sources::maintenance::MaintenanceClient::new();
+        let maintenance = std::sync::Arc::new(sources::maintenance::MaintenanceClient::new());
         let osv = std::sync::Arc::new(sources::osv::OsvClient::new());
 
         // Pre-calculate Bloat Index (Transitive counts)
@@ -75,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
         let mut stream = futures::stream::iter(all_deps)
             .map(|mut dep| {
                 let osv = osv.clone();
-                let maintenance = &maintenance;
+                let maintenance = maintenance.clone();
                 let bloat_indices = bloat_indices.clone();
                 async move {
                     let mut score = maintenance.get_health(&dep).await.unwrap_or_default();
