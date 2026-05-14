@@ -87,9 +87,9 @@ When you run Vigil, it scans your lockfiles and presents an interactive dual-pan
 
 ## 🛠️ Why Vigil?
 
-In 2024, a "secure" dependency isn't enough. A library might have zero CVEs today but be completely abandoned by its maintainers, leaving you with a ticking time bomb.
+In **2026**, "zero vulnerabilities" is the bare minimum, not the goal. A library with no CVEs can still be a **liability** if it was last updated three years ago or is maintained by a single, overwhelmed individual.
 
-Vigil treats your supply chain like a living organism. It monitors the "pulse" of your dependencies so you can make informed decisions about your stack.
+Vigil treats your supply chain like a living organism. It monitors the **vitality** of your dependencies—staleness, bloat, and bus factor—giving you the insight to cut out dead weight before it becomes a crisis. Don't just scan for the past; audit for the future.
 
 ---
 
