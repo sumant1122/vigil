@@ -104,15 +104,27 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
 
     // Top Header
     let title = Paragraph::new("👁️ Vigil - Universal Supply Chain Health Dashboard")
-        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
         .block(Block::default().borders(Borders::ALL).title("Vigil v0.1.0"));
     f.render_widget(title, chunks[0]);
 
     // Stats Bar
     let total_deps = app.items.len();
-    let vulnerable_deps = app.items.iter().filter(|(d, _)| !d.advisories.is_empty()).count();
+    let vulnerable_deps = app
+        .items
+        .iter()
+        .filter(|(d, _)| !d.advisories.is_empty())
+        .count();
     let avg_score = if total_deps > 0 {
-        app.items.iter().map(|(_, s)| s.composite_score as u32).sum::<u32>() / total_deps as u32
+        app.items
+            .iter()
+            .map(|(_, s)| s.composite_score as u32)
+            .sum::<u32>()
+            / total_deps as u32
     } else {
         0
     };
@@ -121,8 +133,8 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
         " 📦 Total: {} | 🛡️ Vulnerable: {} | 📈 Avg Vitality: {}/100 ",
         total_deps, vulnerable_deps, avg_score
     );
-    let stats = Paragraph::new(stats_text)
-        .block(Block::default().borders(Borders::ALL).title("Summary"));
+    let stats =
+        Paragraph::new(stats_text).block(Block::default().borders(Borders::ALL).title("Summary"));
     f.render_widget(stats, chunks[1]);
 
     // Main Body: Table (Left) and Details (Right)

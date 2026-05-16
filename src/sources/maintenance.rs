@@ -134,11 +134,12 @@ impl MaintenanceClient {
     fn calculate_staleness_score(&self, date_str: &str) -> u8 {
         use chrono::Datelike;
         let now = chrono::Utc::now();
-        
+
         let target_date = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
             .unwrap_or_else(|_| chrono::NaiveDate::from_ymd_opt(2000, 1, 1).unwrap());
 
-        let months_ago = (now.year() - target_date.year()) * 12 + (now.month() as i32 - target_date.month() as i32);
+        let months_ago = (now.year() - target_date.year()) * 12
+            + (now.month() as i32 - target_date.month() as i32);
 
         if months_ago < 0 {
             return 100;
@@ -181,7 +182,7 @@ mod tests {
     fn test_staleness_scoring() {
         let client = MaintenanceClient::new();
         let now = chrono::Utc::now();
-        
+
         let format_date = |dt: chrono::DateTime<chrono::Utc>| dt.format("%Y-%m-%d").to_string();
 
         // Brand new
@@ -189,14 +190,23 @@ mod tests {
 
         // 6 months old
         let six_months_ago = now - chrono::Duration::days(185);
-        assert_eq!(client.calculate_staleness_score(&format_date(six_months_ago)), 90);
+        assert_eq!(
+            client.calculate_staleness_score(&format_date(six_months_ago)),
+            90
+        );
 
         // 1 year old
         let one_year_ago = now - chrono::Duration::days(366);
-        assert_eq!(client.calculate_staleness_score(&format_date(one_year_ago)), 80);
+        assert_eq!(
+            client.calculate_staleness_score(&format_date(one_year_ago)),
+            80
+        );
 
         // 5 years old
         let five_years_ago = now - chrono::Duration::days(365 * 5 + 2);
-        assert_eq!(client.calculate_staleness_score(&format_date(five_years_ago)), 10);
+        assert_eq!(
+            client.calculate_staleness_score(&format_date(five_years_ago)),
+            10
+        );
     }
 }

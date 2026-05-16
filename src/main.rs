@@ -99,7 +99,9 @@ async fn main() -> anyhow::Result<()> {
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
 
                     if !dep.advisories.is_empty() {
-                        let max_severity = dep.advisories.iter()
+                        let max_severity = dep
+                            .advisories
+                            .iter()
                             .map(|a| match a.severity.to_uppercase().as_str() {
                                 "CRITICAL" => 100,
                                 "HIGH" => 80,
@@ -111,7 +113,8 @@ async fn main() -> anyhow::Result<()> {
                             .unwrap_or(0);
 
                         score.security_score = 100 - max_severity;
-                        let composite = (score.security_score as f32 * 0.7) + (score.maintenance_score as f32 * 0.3);
+                        let composite = (score.security_score as f32 * 0.7)
+                            + (score.maintenance_score as f32 * 0.3);
                         score.composite_score = composite as u8;
                     }
                     cached_results.push((dep, score));
@@ -139,7 +142,9 @@ async fn main() -> anyhow::Result<()> {
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
 
                     if !dep.advisories.is_empty() {
-                        let max_severity = dep.advisories.iter()
+                        let max_severity = dep
+                            .advisories
+                            .iter()
                             .map(|a| match a.severity.to_uppercase().as_str() {
                                 "CRITICAL" => 100,
                                 "HIGH" => 80,
@@ -151,9 +156,10 @@ async fn main() -> anyhow::Result<()> {
                             .unwrap_or(0);
 
                         score.security_score = 100 - max_severity;
-                        
+
                         // Weighted average: Security weighs 70%, Maintenance 30% if vulnerable
-                        let composite = (score.security_score as f32 * 0.7) + (score.maintenance_score as f32 * 0.3);
+                        let composite = (score.security_score as f32 * 0.7)
+                            + (score.maintenance_score as f32 * 0.3);
                         score.composite_score = composite as u8;
                     }
                     (dep, score)
