@@ -25,6 +25,7 @@ async fn main() -> anyhow::Result<()> {
         Box::new(scanners::cargo::CargoLockScanner),
         Box::new(scanners::npm::NpmLockScanner),
         Box::new(scanners::python::RequirementsTxtScanner),
+        Box::new(scanners::uv::UvLockScanner),
         Box::new(scanners::go::GoModScanner),
     ];
 

@@ -6,6 +6,7 @@ pub mod cargo;
 pub mod go;
 pub mod npm;
 pub mod python;
+pub mod uv;
 
 #[async_trait]
 pub trait EcosystemScanner {

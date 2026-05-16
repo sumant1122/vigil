@@ -12,7 +12,7 @@
 
 ## ✨ Features
 
-- **🌍 Universal Support**: Analyze Rust (`Cargo.lock`), Node.js (`package-lock.json`), Python (`requirements.txt`), and Go (`go.mod`) in one tool.
+- **🌍 Universal Support**: Analyze Rust (`Cargo.lock`), Node.js (`package-lock.json`), Python (`requirements.txt`, `uv.lock`), and Go (`go.mod`) in one tool.
 - **⚡ Blazing Fast**: 
     - **OSV Batching**: One single network request to check your entire dependency tree for security vulnerabilities.
     - **Persistent Cache**: Subsequent runs are near-instant thanks to a local cache (`~/.cache/vigil`).
@@ -82,7 +82,7 @@ When you run Vigil, it scans your lockfiles and presents an interactive dual-pan
 | :--- | :--- |
 | **Rust** | `Cargo.lock` |
 | **Node.js** | `package-lock.json` (v2+) |
-| **Python** | `requirements.txt` |
+| **Python** | `requirements.txt`, `uv.lock` |
 | **Go** | `go.mod` |
 
 ---
