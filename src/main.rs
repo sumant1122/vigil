@@ -99,8 +99,20 @@ async fn main() -> anyhow::Result<()> {
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
 
                     if !dep.advisories.is_empty() {
-                        score.security_score = 0;
-                        score.composite_score = (score.maintenance_score as u16 / 2) as u8;
+                        let max_severity = dep.advisories.iter()
+                            .map(|a| match a.severity.to_uppercase().as_str() {
+                                "CRITICAL" => 100,
+                                "HIGH" => 80,
+                                "MODERATE" | "MEDIUM" => 50,
+                                "LOW" => 20,
+                                _ => 10,
+                            })
+                            .max()
+                            .unwrap_or(0);
+
+                        score.security_score = 100 - max_severity;
+                        let composite = (score.security_score as f32 * 0.7) + (score.maintenance_score as f32 * 0.3);
+                        score.composite_score = composite as u8;
                     }
                     cached_results.push((dep, score));
                     continue;
@@ -120,14 +132,29 @@ async fn main() -> anyhow::Result<()> {
                 let maintenance = maintenance.clone();
                 let bloat_indices = bloat_indices.clone();
                 async move {
-                    let mut score = maintenance.get_health(&dep).await.unwrap_or_else(|_| {
-                        futures::executor::block_on(maintenance.get_fallback_health(&dep))
-                    });
+                    let mut score = match maintenance.get_health(&dep).await {
+                        Ok(s) => s,
+                        Err(_) => maintenance.get_fallback_health(&dep).await,
+                    };
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
 
                     if !dep.advisories.is_empty() {
-                        score.security_score = 0;
-                        score.composite_score = (score.maintenance_score as u16 / 2) as u8;
+                        let max_severity = dep.advisories.iter()
+                            .map(|a| match a.severity.to_uppercase().as_str() {
+                                "CRITICAL" => 100,
+                                "HIGH" => 80,
+                                "MODERATE" | "MEDIUM" => 50,
+                                "LOW" => 20,
+                                _ => 10,
+                            })
+                            .max()
+                            .unwrap_or(0);
+
+                        score.security_score = 100 - max_severity;
+                        
+                        // Weighted average: Security weighs 70%, Maintenance 30% if vulnerable
+                        let composite = (score.security_score as f32 * 0.7) + (score.maintenance_score as f32 * 0.3);
+                        score.composite_score = composite as u8;
                     }
                     (dep, score)
                 }

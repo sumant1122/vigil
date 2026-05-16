@@ -46,6 +46,7 @@ impl MaintenanceClient {
         match dep.ecosystem {
             Ecosystem::Cargo => self.fetch_cargo(dep).await,
             Ecosystem::Npm => self.fetch_npm(dep).await,
+            Ecosystem::Pip => self.fetch_pypi(dep).await,
             _ => self.get_simulated_health(dep).await,
         }
     }
@@ -107,25 +108,44 @@ impl MaintenanceClient {
         })
     }
 
+    async fn fetch_pypi(&self, dep: &Dependency) -> anyhow::Result<HealthScore> {
+        let url = format!("https://pypi.org/pypi/{}/json", dep.name);
+        let res: serde_json::Value = self.http.get(&url).send().await?.json().await?;
+
+        let last_updated = res["urls"][0]["upload_time"]
+            .as_str()
+            .map(|s| &s[..10])
+            .unwrap_or("2000-01-01");
+
+        let maintenance_score = self.calculate_staleness_score(last_updated);
+
+        Ok(HealthScore {
+            maintenance_score,
+            security_score: 100,
+            composite_score: maintenance_score,
+            maintenance_details: vec![
+                format!("Last updated: {}", last_updated),
+                "Source: pypi.org".to_string(),
+            ],
+            bloat_index: 0,
+        })
+    }
+
     fn calculate_staleness_score(&self, date_str: &str) -> u8 {
-        // Simple staleness calculation:
-        // 100 points base.
-        // -10 points for every 6 months of inactivity.
+        use chrono::Datelike;
+        let now = chrono::Utc::now();
+        
+        let target_date = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+            .unwrap_or_else(|_| chrono::NaiveDate::from_ymd_opt(2000, 1, 1).unwrap());
 
-        let year = date_str[..4].parse::<i32>().unwrap_or(2024);
-        let month = date_str[5..7].parse::<i32>().unwrap_or(1);
-
-        let current_year = 2024;
-        let current_month = 5;
-
-        let months_ago = (current_year - year) * 12 + (current_month - month);
+        let months_ago = (now.year() - target_date.year()) * 12 + (now.month() as i32 - target_date.month() as i32);
 
         if months_ago < 0 {
             return 100;
         }
 
         let penalty = (months_ago / 6) * 10;
-        if penalty >= 100 {
+        if penalty >= 90 {
             10
         } else {
             100 - penalty as u8
@@ -160,17 +180,23 @@ mod tests {
     #[test]
     fn test_staleness_scoring() {
         let client = MaintenanceClient::new();
+        let now = chrono::Utc::now();
+        
+        let format_date = |dt: chrono::DateTime<chrono::Utc>| dt.format("%Y-%m-%d").to_string();
 
-        // Brand new (May 2024 - simulated current date)
-        assert_eq!(client.calculate_staleness_score("2024-05-01"), 100);
+        // Brand new
+        assert_eq!(client.calculate_staleness_score(&format_date(now)), 100);
 
         // 6 months old
-        assert_eq!(client.calculate_staleness_score("2023-11-01"), 90);
+        let six_months_ago = now - chrono::Duration::days(185);
+        assert_eq!(client.calculate_staleness_score(&format_date(six_months_ago)), 90);
 
         // 1 year old
-        assert_eq!(client.calculate_staleness_score("2023-05-01"), 80);
+        let one_year_ago = now - chrono::Duration::days(366);
+        assert_eq!(client.calculate_staleness_score(&format_date(one_year_ago)), 80);
 
         // 5 years old
-        assert_eq!(client.calculate_staleness_score("2019-05-01"), 10);
+        let five_years_ago = now - chrono::Duration::days(365 * 5 + 2);
+        assert_eq!(client.calculate_staleness_score(&format_date(five_years_ago)), 10);
     }
 }

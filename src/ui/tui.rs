@@ -93,9 +93,10 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Length(3),
-                Constraint::Min(0),
-                Constraint::Length(3),
+                Constraint::Length(3), // Header
+                Constraint::Length(3), // Stats
+                Constraint::Min(0),    // Body
+                Constraint::Length(3), // Footer
             ]
             .as_ref(),
         )
@@ -103,14 +104,32 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
 
     // Top Header
     let title = Paragraph::new("👁️ Vigil - Universal Supply Chain Health Dashboard")
-        .block(Block::default().borders(Borders::ALL).title("Status"));
+        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .block(Block::default().borders(Borders::ALL).title("Vigil v0.1.0"));
     f.render_widget(title, chunks[0]);
+
+    // Stats Bar
+    let total_deps = app.items.len();
+    let vulnerable_deps = app.items.iter().filter(|(d, _)| !d.advisories.is_empty()).count();
+    let avg_score = if total_deps > 0 {
+        app.items.iter().map(|(_, s)| s.composite_score as u32).sum::<u32>() / total_deps as u32
+    } else {
+        0
+    };
+
+    let stats_text = format!(
+        " 📦 Total: {} | 🛡️ Vulnerable: {} | 📈 Avg Vitality: {}/100 ",
+        total_deps, vulnerable_deps, avg_score
+    );
+    let stats = Paragraph::new(stats_text)
+        .block(Block::default().borders(Borders::ALL).title("Summary"));
+    f.render_widget(stats, chunks[1]);
 
     // Main Body: Table (Left) and Details (Right)
     let body_chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)].as_ref())
-        .split(chunks[1]);
+        .constraints([Constraint::Percentage(55), Constraint::Percentage(45)].as_ref())
+        .split(chunks[2]);
 
     // Table view
     let rows: Vec<Row> = app
@@ -125,7 +144,15 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
                 Color::Red
             };
 
+            let ecosystem_indicator = match dep.ecosystem {
+                crate::models::Ecosystem::Cargo => "🦀 Cargo",
+                crate::models::Ecosystem::Npm => " NPM",
+                crate::models::Ecosystem::Pip => "🐍 PyPI",
+                crate::models::Ecosystem::Go => "🐹 Go",
+            };
+
             Row::new(vec![
+                Cell::from(ecosystem_indicator),
                 Cell::from(dep.name.clone()),
                 Cell::from(dep.version.clone()),
                 Cell::from(score.composite_score.to_string()).style(Style::default().fg(color)),
@@ -136,13 +163,14 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
     let table = Table::new(
         rows,
         [
-            Constraint::Percentage(60),
+            Constraint::Length(10),
+            Constraint::Percentage(50),
             Constraint::Percentage(25),
             Constraint::Percentage(15),
         ],
     )
     .header(
-        Row::new(vec!["Dependency", "Version", "Score"])
+        Row::new(vec!["Type", "Dependency", "Version", "Score"])
             .style(Style::default().add_modifier(Modifier::BOLD)),
     )
     .block(Block::default().borders(Borders::ALL).title("Inventory"))

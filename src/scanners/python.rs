@@ -42,7 +42,7 @@ impl EcosystemScanner for RequirementsTxtScanner {
                     ecosystem: Ecosystem::Pip,
                     advisories: Vec::new(),
                     direct_dependencies: Vec::new(),
-                    license: Some("BSD-3-Clause".to_string()),
+                    license: Some("Unknown".to_string()),
                 });
             }
         }

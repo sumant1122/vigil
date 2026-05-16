@@ -17,11 +17,11 @@
     - **OSV Batching**: One single network request to check your entire dependency tree for security vulnerabilities.
     - **Persistent Cache**: Subsequent runs are near-instant thanks to a local cache (`~/.cache/vigil`).
 - **🩺 Vitality Scoring**: Goes beyond CVEs. Vigil measures maintenance health:
-    - **Bloat Index**: Visualize the transitive weight of your dependencies (how many hidden packages are being dragged in).
-    - **Staleness**: Real-time "heartbeat" monitoring via crates.io and npm registry APIs.
-    - **License Vigilance**: Track and flag restrictive licenses (MIT, Apache, GPL, etc.) across your stack.
+    - **Bloat Index**: Visualize the transitive weight of your dependencies.
+    - **Staleness**: Real-time "heartbeat" monitoring via crates.io, npm, and PyPI registries.
+    - **Severity-Weighted Security**: Security scores now weigh severity (Critical/High/Low) into the composite health.
 - **🛡️ Security First**: Direct, high-speed integration with **OSV.dev** (Open Source Vulnerabilities).
-- **📊 Gorgeous TUI**: A premium, interactive terminal dashboard with a dual-pane drill-down view.
+- **📊 Gorgeous TUI**: A premium dashboard with a summary stats bar and a dual-pane drill-down view.
 - **🚀 Zero Config**: Run `vigil` in any repo, and it automatically detects your stack.
 
 ---

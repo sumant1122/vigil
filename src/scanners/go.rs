@@ -47,7 +47,7 @@ impl EcosystemScanner for GoModScanner {
                         ecosystem: Ecosystem::Go,
                         advisories: Vec::new(),
                         direct_dependencies: Vec::new(),
-                        license: Some("BSD-3-Clause".to_string()),
+                        license: Some("Unknown".to_string()),
                     });
                 }
             } else if in_require {
@@ -59,7 +59,7 @@ impl EcosystemScanner for GoModScanner {
                         ecosystem: Ecosystem::Go,
                         advisories: Vec::new(),
                         direct_dependencies: Vec::new(),
-                        license: Some("BSD-3-Clause".to_string()),
+                        license: Some("Unknown".to_string()),
                     });
                 }
             }

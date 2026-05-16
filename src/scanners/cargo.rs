@@ -51,7 +51,7 @@ impl EcosystemScanner for CargoLockScanner {
                     ecosystem: Ecosystem::Cargo,
                     advisories: Vec::new(),
                     direct_dependencies: deps,
-                    license: Some("MIT".to_string()), // Placeholder for now
+                    license: Some("Unknown".to_string()),
                 }
             })
             .collect())
