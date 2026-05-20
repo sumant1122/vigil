@@ -142,10 +142,13 @@ mod tests {
 
         let res: OsvBatchResponse = serde_json::from_str(json).unwrap();
         assert_eq!(res.results.len(), 2);
-        
+
         let first_vuln = &res.results[0].vulns.as_ref().unwrap()[0];
         assert_eq!(first_vuln.id, "GHSA-xxxx-yyyy-zzzz");
         assert_eq!(first_vuln.summary, Some("Sample advisory".to_string()));
-        assert_eq!(first_vuln.database_specific.as_ref().unwrap().severity, Some("HIGH".to_string()));
+        assert_eq!(
+            first_vuln.database_specific.as_ref().unwrap().severity,
+            Some("HIGH".to_string())
+        );
     }
 }

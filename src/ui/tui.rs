@@ -61,9 +61,17 @@ fn run_app<B: ratatui::backend::Backend>(
         terminal.draw(|f| ui(f, app))?;
 
         if let Event::Key(key) = event::read()? {
-            let filtered_count = app.items.iter().filter(|(dep, _)| {
-                app.search_query.is_empty() || dep.name.to_lowercase().contains(&app.search_query.to_lowercase())
-            }).count();
+            let filtered_count = app
+                .items
+                .iter()
+                .filter(|(dep, _)| {
+                    app.search_query.is_empty()
+                        || dep
+                            .name
+                            .to_lowercase()
+                            .contains(&app.search_query.to_lowercase())
+                })
+                .count();
 
             if app.in_search_mode {
                 match key.code {

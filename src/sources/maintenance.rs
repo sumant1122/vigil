@@ -72,13 +72,12 @@ impl MaintenanceClient {
         let updated_at = &res.krate.updated_at[..10];
         let maintenance_score = self.calculate_staleness_score(updated_at);
 
-        let license = res.versions
-            .as_ref()
-            .and_then(|versions| {
-                versions.iter()
-                    .find(|v| v.num == dep.version)
-                    .and_then(|v| v.license.clone())
-            });
+        let license = res.versions.as_ref().and_then(|versions| {
+            versions
+                .iter()
+                .find(|v| v.num == dep.version)
+                .and_then(|v| v.license.clone())
+        });
 
         let maintenance_details = vec![
             format!("Last updated: {}", updated_at),
