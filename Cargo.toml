@@ -1,6 +1,6 @@
 [package]
 name = "vigil"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Sumant <sumant1122@gmail.com>"]
 description = "A universal supply chain health dashboard"
