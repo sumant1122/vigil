@@ -99,6 +99,11 @@ async fn main() -> anyhow::Result<()> {
                     let mut score = entry.score.clone();
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
 
+                    let mut dep = dep;
+                    if let Some(ref lic) = score.license {
+                        dep.license = Some(lic.clone());
+                    }
+
                     if !dep.advisories.is_empty() {
                         let max_severity = dep
                             .advisories
@@ -136,11 +141,16 @@ async fn main() -> anyhow::Result<()> {
                 let maintenance = maintenance.clone();
                 let bloat_indices = bloat_indices.clone();
                 async move {
+                    let mut dep = dep;
                     let mut score = match maintenance.get_health(&dep).await {
                         Ok(s) => s,
                         Err(_) => maintenance.get_fallback_health(&dep).await,
                     };
                     score.bloat_index = *bloat_indices.get(&dep.name).unwrap_or(&0);
+
+                    if let Some(ref lic) = score.license {
+                        dep.license = Some(lic.clone());
+                    }
 
                     if !dep.advisories.is_empty() {
                         let max_severity = dep

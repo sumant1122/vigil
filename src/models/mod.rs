@@ -25,6 +25,7 @@ pub struct HealthScore {
     pub composite_score: u8,   // 0-100
     pub maintenance_details: Vec<String>,
     pub bloat_index: usize, // Transitive dependency count
+    pub license: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

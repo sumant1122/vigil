@@ -22,6 +22,7 @@
     - **Severity-Weighted Security**: Security scores now weigh severity (Critical/High/Low) into the composite health.
 - **🛡️ Security First**: Direct, high-speed integration with **OSV.dev** (Open Source Vulnerabilities).
 - **📊 Gorgeous TUI**: A premium dashboard with a summary stats bar and a dual-pane drill-down view.
+- **🔍 Real-Time Search**: Press `/` inside the TUI to filter the dependency inventory instantly by name.
 - **🚀 Zero Config**: Run `vigil` in any repo, and it automatically detects your stack.
 
 ---
@@ -52,6 +53,17 @@ vigil
 Analyze a specific project directory:
 ```bash
 vigil --path /path/to/your/project
+```
+
+---
+
+## 🧪 Testing
+
+Vigil includes a robust suite of unit and integration tests covering the ecosystem scanners, cache managers, and API deserialization layers.
+
+To run the entire test suite:
+```bash
+cargo test
 ```
 
 ---

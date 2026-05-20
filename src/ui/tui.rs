@@ -16,6 +16,8 @@ use std::io;
 pub struct App {
     pub items: Vec<(Dependency, HealthScore)>,
     pub state: TableState,
+    pub search_query: String,
+    pub in_search_mode: bool,
 }
 
 pub fn run_tui(items: Vec<(Dependency, HealthScore)>) -> anyhow::Result<()> {
@@ -27,7 +29,12 @@ pub fn run_tui(items: Vec<(Dependency, HealthScore)>) -> anyhow::Result<()> {
 
     let mut state = TableState::default();
     state.select(Some(0));
-    let mut app = App { items, state };
+    let mut app = App {
+        items,
+        state,
+        search_query: String::new(),
+        in_search_mode: false,
+    };
 
     let res = run_app(&mut terminal, &mut app);
 
@@ -54,35 +61,63 @@ fn run_app<B: ratatui::backend::Backend>(
         terminal.draw(|f| ui(f, app))?;
 
         if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') => return Ok(()),
-                KeyCode::Down => {
-                    let i = match app.state.selected() {
-                        Some(i) => {
-                            if i >= app.items.len() - 1 {
-                                0
-                            } else {
-                                i + 1
-                            }
-                        }
-                        None => 0,
-                    };
-                    app.state.select(Some(i));
+            let filtered_count = app.items.iter().filter(|(dep, _)| {
+                app.search_query.is_empty() || dep.name.to_lowercase().contains(&app.search_query.to_lowercase())
+            }).count();
+
+            if app.in_search_mode {
+                match key.code {
+                    KeyCode::Esc | KeyCode::Enter => {
+                        app.in_search_mode = false;
+                    }
+                    KeyCode::Backspace => {
+                        app.search_query.pop();
+                        app.state.select(Some(0));
+                    }
+                    KeyCode::Char(c) => {
+                        app.search_query.push(c);
+                        app.state.select(Some(0));
+                    }
+                    _ => {}
                 }
-                KeyCode::Up => {
-                    let i = match app.state.selected() {
-                        Some(i) => {
-                            if i == 0 {
-                                app.items.len() - 1
-                            } else {
-                                i - 1
-                            }
+            } else {
+                match key.code {
+                    KeyCode::Char('q') => return Ok(()),
+                    KeyCode::Char('/') => {
+                        app.in_search_mode = true;
+                    }
+                    KeyCode::Down => {
+                        if filtered_count > 0 {
+                            let i = match app.state.selected() {
+                                Some(i) => {
+                                    if i >= filtered_count - 1 {
+                                        0
+                                    } else {
+                                        i + 1
+                                    }
+                                }
+                                None => 0,
+                            };
+                            app.state.select(Some(i));
                         }
-                        None => 0,
-                    };
-                    app.state.select(Some(i));
+                    }
+                    KeyCode::Up => {
+                        if filtered_count > 0 {
+                            let i = match app.state.selected() {
+                                Some(i) => {
+                                    if i == 0 {
+                                        filtered_count - 1
+                                    } else {
+                                        i - 1
+                                    }
+                                }
+                                None => 0,
+                            };
+                            app.state.select(Some(i));
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
         }
     }
@@ -143,9 +178,33 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
         .constraints([Constraint::Percentage(55), Constraint::Percentage(45)].as_ref())
         .split(chunks[2]);
 
-    // Table view
-    let rows: Vec<Row> = app
+    // Filter and clamp state
+    let filtered_items: Vec<&(Dependency, HealthScore)> = app
         .items
+        .iter()
+        .filter(|(dep, _)| {
+            app.search_query.is_empty()
+                || dep
+                    .name
+                    .to_lowercase()
+                    .contains(&app.search_query.to_lowercase())
+        })
+        .collect();
+
+    if !filtered_items.is_empty() {
+        if let Some(selected) = app.state.selected() {
+            if selected >= filtered_items.len() {
+                app.state.select(Some(filtered_items.len() - 1));
+            }
+        } else {
+            app.state.select(Some(0));
+        }
+    } else {
+        app.state.select(None);
+    }
+
+    // Table view
+    let rows: Vec<Row> = filtered_items
         .iter()
         .map(|(dep, score)| {
             let color = if score.composite_score > 80 {
@@ -197,7 +256,8 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
 
     // Details view (Right)
     if let Some(selected_idx) = app.state.selected() {
-        if let Some((dep, score)) = app.items.get(selected_idx) {
+        if let Some(item) = filtered_items.get(selected_idx) {
+            let (dep, score) = *item;
             let details_chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints(
@@ -270,7 +330,18 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
     }
 
     // Footer
-    let footer = Paragraph::new("Use ↑/↓ to navigate, 'q' to quit")
-        .block(Block::default().borders(Borders::ALL));
-    f.render_widget(footer, chunks[2]);
+    let footer = if app.in_search_mode {
+        let footer_text = format!(" 🔍 Search Dependency: {}▋ ", app.search_query);
+        Paragraph::new(footer_text)
+            .style(Style::default().fg(Color::Yellow))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Search Mode (Esc/Enter to exit)"),
+            )
+    } else {
+        Paragraph::new(" Use ↑/↓ to navigate, '/' to search, 'q' to quit ")
+            .block(Block::default().borders(Borders::ALL).title("Controls"))
+    };
+    f.render_widget(footer, chunks[3]);
 }

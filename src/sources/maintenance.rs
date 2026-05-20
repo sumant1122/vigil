@@ -10,6 +10,7 @@ pub struct MaintenanceClient {
 struct CratesIoResponse {
     #[serde(rename = "crate")]
     krate: CrateInfo,
+    versions: Option<Vec<CratesIoVersion>>,
 }
 
 #[derive(Deserialize)]
@@ -19,8 +20,15 @@ struct CrateInfo {
 }
 
 #[derive(Deserialize)]
+struct CratesIoVersion {
+    num: String,
+    license: Option<String>,
+}
+
+#[derive(Deserialize)]
 struct NpmResponse {
     time: std::collections::HashMap<String, String>,
+    license: Option<String>,
 }
 
 impl MaintenanceClient {
@@ -64,6 +72,14 @@ impl MaintenanceClient {
         let updated_at = &res.krate.updated_at[..10];
         let maintenance_score = self.calculate_staleness_score(updated_at);
 
+        let license = res.versions
+            .as_ref()
+            .and_then(|versions| {
+                versions.iter()
+                    .find(|v| v.num == dep.version)
+                    .and_then(|v| v.license.clone())
+            });
+
         let maintenance_details = vec![
             format!("Last updated: {}", updated_at),
             format!("Total downloads: {}", res.krate.downloads),
@@ -76,6 +92,7 @@ impl MaintenanceClient {
             composite_score: maintenance_score,
             maintenance_details,
             bloat_index: 0,
+            license,
         })
     }
 
@@ -96,6 +113,8 @@ impl MaintenanceClient {
             .unwrap_or("2000-01-01");
         let maintenance_score = self.calculate_staleness_score(last_updated);
 
+        let license = res.license.clone();
+
         Ok(HealthScore {
             maintenance_score,
             security_score: 100,
@@ -105,6 +124,7 @@ impl MaintenanceClient {
                 "Source: npmjs.org".to_string(),
             ],
             bloat_index: 0,
+            license,
         })
     }
 
@@ -119,6 +139,11 @@ impl MaintenanceClient {
 
         let maintenance_score = self.calculate_staleness_score(last_updated);
 
+        let license = res["info"]["license"]
+            .as_str()
+            .map(|s| s.to_string())
+            .filter(|s| !s.is_empty() && s != "UNKNOWN");
+
         Ok(HealthScore {
             maintenance_score,
             security_score: 100,
@@ -128,6 +153,7 @@ impl MaintenanceClient {
                 "Source: pypi.org".to_string(),
             ],
             bloat_index: 0,
+            license,
         })
     }
 
@@ -166,6 +192,7 @@ impl MaintenanceClient {
                 "Last heartbeat: ~2 months ago".to_string(),
             ],
             bloat_index: 0,
+            license: Some("Unknown".to_string()),
         }
     }
 
@@ -208,5 +235,45 @@ mod tests {
             client.calculate_staleness_score(&format_date(five_years_ago)),
             10
         );
+    }
+
+    #[test]
+    fn test_crates_io_deserialization() {
+        let json = r#"{
+            "crate": {
+                "updated_at": "2024-05-19T00:00:00Z",
+                "downloads": 1000
+            },
+            "versions": [
+                {
+                    "num": "1.0.0",
+                    "license": "MIT"
+                },
+                {
+                    "num": "1.1.0",
+                    "license": "Apache-2.0"
+                }
+            ]
+        }"#;
+
+        let res: CratesIoResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(res.krate.downloads, 1000);
+        let versions = res.versions.unwrap();
+        assert_eq!(versions.len(), 2);
+        assert_eq!(versions[0].num, "1.0.0");
+        assert_eq!(versions[0].license, Some("MIT".to_string()));
+    }
+
+    #[test]
+    fn test_npm_deserialization() {
+        let json = r#"{
+            "time": {
+                "modified": "2024-05-19T00:00:00Z"
+            },
+            "license": "MIT"
+        }"#;
+
+        let res: NpmResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(res.license, Some("MIT".to_string()));
     }
 }
