@@ -57,6 +57,15 @@ vigil --path /path/to/your/project
 
 ---
 
+## 🏗️ Architecture
+
+Vigil is structured as both a library and a binary target:
+- **`src/lib.rs`**: Exports all core logic (`models`, `scanners`, `sources`, `ui`) as a reusable library.
+- **`src/main.rs`**: A thin binary wrapper that initializes the terminal application and invokes the CLI engine.
+- **`tests/`**: Dedicated integration tests that verify the behavior of public APIs (like cache storage and multi-ecosystem lockfile scanning) from an external integration context.
+
+---
+
 ## 🧪 Testing
 
 Vigil includes a robust suite of unit and integration tests covering the ecosystem scanners, cache managers, and API deserialization layers.

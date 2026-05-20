@@ -32,7 +32,6 @@ impl CacheManager {
         }
     }
 
-    #[cfg(test)]
     pub fn new_with_path(path: PathBuf) -> Self {
         Self { cache_path: path }
     }

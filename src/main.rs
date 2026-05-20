@@ -1,7 +1,6 @@
-mod models;
-mod scanners;
-mod sources;
-mod ui;
+use vigil::scanners;
+use vigil::sources;
+use vigil::ui;
 
 use clap::Parser;
 
