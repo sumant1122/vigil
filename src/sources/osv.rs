@@ -46,6 +46,12 @@ struct OsvBatchResponse {
     results: Vec<OsvResponse>,
 }
 
+impl Default for OsvClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OsvClient {
     pub fn new() -> Self {
         Self {

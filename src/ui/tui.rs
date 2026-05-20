@@ -94,35 +94,31 @@ fn run_app<B: ratatui::backend::Backend>(
                     KeyCode::Char('/') => {
                         app.in_search_mode = true;
                     }
-                    KeyCode::Down => {
-                        if filtered_count > 0 {
-                            let i = match app.state.selected() {
-                                Some(i) => {
-                                    if i >= filtered_count - 1 {
-                                        0
-                                    } else {
-                                        i + 1
-                                    }
+                    KeyCode::Down if filtered_count > 0 => {
+                        let i = match app.state.selected() {
+                            Some(i) => {
+                                if i >= filtered_count - 1 {
+                                    0
+                                } else {
+                                    i + 1
                                 }
-                                None => 0,
-                            };
-                            app.state.select(Some(i));
-                        }
+                            }
+                            None => 0,
+                        };
+                        app.state.select(Some(i));
                     }
-                    KeyCode::Up => {
-                        if filtered_count > 0 {
-                            let i = match app.state.selected() {
-                                Some(i) => {
-                                    if i == 0 {
-                                        filtered_count - 1
-                                    } else {
-                                        i - 1
-                                    }
+                    KeyCode::Up if filtered_count > 0 => {
+                        let i = match app.state.selected() {
+                            Some(i) => {
+                                if i == 0 {
+                                    filtered_count - 1
+                                } else {
+                                    i - 1
                                 }
-                                None => 0,
-                            };
-                            app.state.select(Some(i));
-                        }
+                            }
+                            None => 0,
+                        };
+                        app.state.select(Some(i));
                     }
                     _ => {}
                 }

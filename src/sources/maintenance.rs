@@ -31,6 +31,12 @@ struct NpmResponse {
     license: Option<String>,
 }
 
+impl Default for MaintenanceClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MaintenanceClient {
     pub fn new() -> Self {
         let mut headers = reqwest::header::HeaderMap::new();

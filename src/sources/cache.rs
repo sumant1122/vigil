@@ -20,6 +20,12 @@ pub struct CacheManager {
     cache_path: PathBuf,
 }
 
+impl Default for CacheManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CacheManager {
     pub fn new() -> Self {
         let cache_dir = ProjectDirs::from("com", "vigil", "vigil")
